@@ -1,0 +1,36 @@
+name: 盖世小鸡每日简报
+
+on:
+  schedule:
+    - cron: '30 1 * * *'   # 北京时间 09:30 (=UTC 01:30)
+    - cron: '30 13 * * *'  # 北京时间 21:30 (=UTC 13:30)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install feedparser requests beautifulsoup4
+
+      - name: 抓取并推送到飞书
+        env:
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+        run: python fetch_gamesir.py 24
+
+      - name: 保存去重记录（seen.json 回写仓库）
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add seen.json
+          git commit -m "update seen.json" || echo "无变更"
+          git push
